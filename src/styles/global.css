@@ -2,7 +2,7 @@
 
 /* Theme Variables - Can be overridden by parent application if needed */
 :root {
-    --bg: #ffffff;
+
     --text: #333333;
     --border: #e0e0e0;
     --accent: #0066cc;
@@ -11,93 +11,82 @@
     --arrow: #666666;
 }
 
-/* Dark theme detection - Can be disabled by parent styles if needed */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #1e1e1e;
-        --text: #d4d4d4;
-        --border: #323232;
-        --accent: #007acc;
-        --hover: #2a2d2e;
-        --input-bg: #3c3c3c;
-        --arrow: #6a9955;
-    }
-}
 
-/* Main Container 
-   - Uses inline-block to respect parent's flow
-   - Width is responsive but contained (300px to 400px)
-   - Will take parent's width up to max-width
-   - Box-sizing ensures padding doesn't affect final width
-*/
+
+/* Main Container */
+
 #currency-converter {
-    background: var(--bg);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 16px;
-
     font-family: 'B612 Mono', 'Share Tech Mono', 'Courier Prime', 'Courier New', monospace;
-    letter-spacing: 0.5px; 
-    
-    display: inline-block;
-    min-width: 300px;
-    width: 100%;
-    max-width: 400px;
+    letter-spacing: 0.5px;
+    display: block;  /* Changed from inline-block */
+    margin: 20px auto; /* Center the converter */
+    width: fit-content; /* Let it size to content */
     height: auto;
-    overflow: hidden;
     box-sizing: border-box;
 }
 
-/* Form Elements 
-   - Fixed widths prevent layout shifts
-   - flex-shrink allows adaptation in tight spaces
-   - Uses CSS variables for easy theme integration
-*/
-select, input[type="number"] {
+
+
+/* Form Elements */
+select, 
+input[type="number"] {
     background: var(--input-bg);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 6px 10px;
+    padding: 8px 12px;
     border-radius: 4px;
     outline: none;
     font-family: 'Share Tech Mono', 'B612 Mono', monospace;
     letter-spacing: 1px;
-    font-size: 14px;
+    font-size: 16px; /* Prevent zoom on mobile */
     max-width: 100px;
     min-width: 80px;
     flex-shrink: 1;
+    -webkit-appearance: none; /* Remove default iOS styling */
+    appearance: none;
 }
 
-/* Interactive States 
-   - Hover and focus states use theme variables
-   - Box-shadow provides accessible focus indication
-*/
-select:hover, input[type="number"]:hover {
+/* Remove spinner buttons from number input */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+/* Interactive States */
+select:hover, 
+input[type="number"]:hover {
     background: var(--hover);
 }
 
-select:focus, input[type="number"]:focus {
+select:focus, 
+input[type="number"]:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
 }
 
-/* Convert Button 
-   - Uses minimal styling to blend with any theme
-   - Transform effects contained within button bounds
-   - Flex display ensures icon centering
-*/
+/* Convert Button */
 .convert-button {
     background: none;
     border: none;
     color: var(--arrow);
     font-size: 1.2em;
-    padding: 8px;
+    padding: 8px 12px;
     cursor: pointer;
     transition: transform 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 44px; /* Better touch target */
+    min-height: 44px; /* Better touch target */
 }
 
 .convert-button:hover {
@@ -108,31 +97,56 @@ select:focus, input[type="number"]:focus {
     transform: scale(0.95);
 }
 
-/* Layout Utilities 
-   - Flex containers handle responsive layout
-   - Width controls prevent content overflow
-*/
+/* Layout Utilities */
 .flex {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 12px;
+    width: 100%;
 }
 
 .flex-col {
     width: 100%;
 }
 
-/* Result Display 
-   - Fixed height prevents layout shifts
-   - Full width ensures alignment
-*/
+/* Result Display */
 .converted-value {
     min-height: 1.5em;
     width: 100%;
     text-align: left;
-    margin-top: 8px;
+    margin-top: 12px;
     color: var(--accent);
     font-family: 'Share Tech Mono', 'B612 Mono', monospace;
     letter-spacing: 1.2px;
+    font-size: 16px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+    .flex {
+        gap: 8px;
+    }
+    
+    select, 
+    input[type="number"] {
+        padding: 12px; /* Larger touch targets */
+        font-size: 16px; /* Prevent zoom */
+    }
+    
+    .convert-button {
+        padding: 12px;
+    }
+}
+
+/* iOS Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    select, 
+    input[type="number"] {
+        font-size: 16px;
+    }
+    
+    .flex {
+        gap: 8px; /* Tighter spacing on iOS */
+    }
 }

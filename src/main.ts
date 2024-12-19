@@ -293,9 +293,12 @@ function setupConverterUI() {
     document.body.appendChild(container);
     return container;
 }
-function renderConverter(container: HTMLElement) {
-    const { fromCurrency, toCurrency, singleValue } = context.data;
 
+
+function renderConverter(container: HTMLElement) {
+    const { fromCurrency, toCurrency, singleValue, exchangeRate } = context.data;
+
+    // Add input validation and proper event handling
     container.innerHTML = `
         <div class="flex flex-col gap-2">
             <div class="flex gap-2 items-center">
@@ -304,9 +307,11 @@ function renderConverter(container: HTMLElement) {
                     id="singleValue" 
                     placeholder="Amount"
                     value="${singleValue || ''}"
+                    min="0"
+                    step="any"
                     class="w-24"
                 >
-                <select id="fromCurrency">
+                <select id="fromCurrency" class="currency-select">
                     ${CURRENCIES.map(curr =>
         `<option value="${curr}" ${curr === fromCurrency ? 'selected' : ''}>
                             ${curr}
@@ -314,7 +319,7 @@ function renderConverter(container: HTMLElement) {
     ).join('')}
                 </select>
                 <button class="convert-button" id="convertButton">→</button>
-                <select id="toCurrency">
+                <select id="toCurrency" class="currency-select">
                     ${CURRENCIES.map(curr =>
         `<option value="${curr}" ${curr === toCurrency ? 'selected' : ''}>
                             ${curr}
@@ -323,7 +328,7 @@ function renderConverter(container: HTMLElement) {
                 </select>
             </div>
             <div class="converted-value" id="result">
-                ${singleValue ? formatCurrency(convertValue(singleValue), toCurrency) : ''}
+                ${singleValue !== null ? formatCurrency(convertValue(singleValue), toCurrency) : ''}
             </div>
         </div>
     `;
@@ -333,44 +338,54 @@ function renderConverter(container: HTMLElement) {
 
 function setupEventListeners(container: HTMLElement) {
     const input = container.querySelector('#singleValue') as HTMLInputElement;
+    const fromSelect = container.querySelector('#fromCurrency') as HTMLSelectElement;
+    const toSelect = container.querySelector('#toCurrency') as HTMLSelectElement;
     const button = container.querySelector('#convertButton') as HTMLButtonElement;
     const resultDiv = container.querySelector('#result');
 
-    if (!input || !button || !resultDiv) {
+    if (!input || !button || !resultDiv || !fromSelect || !toSelect) {
         console.error('Required elements not found');
         return;
     }
 
-    let debounceTimer: NodeJS.Timeout;
+    // Handle currency selection changes
+    fromSelect.addEventListener('change', () => {
+        EventDispatcher.currencyConversion(fromSelect.value, toSelect.value);
+    });
 
-    // 1. Button click handler
+    toSelect.addEventListener('change', () => {
+        EventDispatcher.currencyConversion(fromSelect.value, toSelect.value);
+    });
+
+    // Handle input value changes
+    input.addEventListener('input', (e: Event) => {
+        const inputElement = e.target as HTMLInputElement;
+        const value = inputElement.value ? parseFloat(inputElement.value) : null;
+
+        // Update result div directly without re-rendering entire UI
+        const resultDiv = container.querySelector('#result') as HTMLDivElement;
+        if (value !== null && resultDiv) {
+            resultDiv.textContent = formatCurrency(convertValue(value), context.data.toCurrency);
+        } else {
+            resultDiv.textContent = '';
+        }
+
+        // Debounce the state update to prevent re-renders
+        clearTimeout((input as any).timeout);
+        (input as any).timeout = setTimeout(() => {
+            EventDispatcher.singleValueChange(value);
+        }, 300);
+    });
+
+
+    // Handle convert button click
     button.addEventListener('click', () => {
-        performConversion();
-    });
-
-    // 2. Enter key handler
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            performConversion();
+        const value = input.value ? parseFloat(input.value) : null;
+        if (value !== null) {
+            EventDispatcher.singleValueChange(value);
+            EventDispatcher.currencyConversion(fromSelect.value, toSelect.value);
         }
     });
-
-    // 3. Debounced input handler
-    input.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            performConversion();
-        }, 500);
-    });
-
-    function performConversion() {
-        const value = input.value;
-        if (value && resultDiv) {
-            const result = convertValue(parseFloat(value));
-            resultDiv.textContent = formatCurrency(result, context.data.toCurrency);
-        }
-    }
 }
 
 
@@ -402,9 +417,6 @@ async function init() {
 
         // Initialize event listeners
         initializeEventListeners();
-
-        // Setup UI
-        const container = setupConverterUI();
 
     } catch (error) {
         console.error('Failed to initialize exchange rate:', error);
